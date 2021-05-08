@@ -327,3 +327,15 @@ start和end的含义会随着flags的不同而变化，当资源类型为IORESOU
 1. 使设备被挂接在一个总线上，符合Linux2.6以后的内核设备模型。
 2. 隔离BSP和驱动。在BSP中定义platform设备和设备的资源，相关配置信息，在驱动中只需要通过调用相应的API就可以获取资源和数据，做到了驱动代码与具体硬件平台的解耦。
 3. 让一个设备驱动能够支持多个设备实例。
+
+### platform 设备驱动开发流程
+
+1. 实现设备的文件接口方法，如read, write, ioctl, poll等。
+2. 实现probe方法，在probe方法中完成设备作为字符设备的注册（文件操作接口绑定）。
+3. 实现remove方法，在remove方法中完成设备作为字符设备的注销。
+4. 实现需要实现的其他platform_driver方法。
+5. 通过前面实现的方法，实例化platform_driver。
+6. 调用module_platform_driver()宏函数完成实例化的platform_driver注册和注销。
+
+
+
