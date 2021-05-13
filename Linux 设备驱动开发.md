@@ -337,5 +337,19 @@ start和end的含义会随着flags的不同而变化，当资源类型为IORESOU
 5. 通过前面实现的方法，实例化platform_driver。
 6. 调用module_platform_driver()宏函数完成实例化的platform_driver注册和注销。
 
+## Linux 块设备驱动
+
+### 字符设备和块设备I/O操作的区别
+
+1. 块设备只能以块为单位接收输入和返回输出，而字符设备则是以字节为单位。
+2. 块设备对于I/O请求有对应的缓冲区，因此块设备可以选择以什么样的顺兴进行响应，字符设备无须缓冲且被直接读写。
+3. 字符设备只能被顺序读写，而块设备可以随机访问。
+
+### Linux 块设备驱动结构
+
+#### 块设备操作结构体 block_device_operations
+
+块设备驱动中存在一个类似于字符设备驱动中的file_operations的结构体block_device_operations，它是对块设备操作的集合，Linux源码中定义如下：
+
 
 
