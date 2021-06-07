@@ -115,11 +115,90 @@ Linux内核配置系统主要由3个部分组成：
 - 在目录的Kconfig文件中增加关于新源代码对应项目的编译配置选项。
 - 在目录的Makefile文件中增加对新源代码的编译条目。
 
+一般而言，驱动开发者会在内核源代码的drivers目录下的相应子目录中增加新的设备驱动源代码或者在arch/arm/mach-xxx下新增加板级支持的代码，同时增加或修改Kconfig配置脚本和Makefile脚本。
+
+#### Kconfig
+
+1. 大多数内核配置选项都对应Kconfig中的一个配置选项config，config关键字定义新的配置选项，之后的几行代码定义了该配置选项的属性，这些属性包括类型，数据范围，输入提示，依赖关系，选择关系及帮助信息，默认值等。
+
+   1. 每个配置选项都必须指定类型，类型可以为bool, tristate, string, hex和int。
+
+   2. 输入提示的一般格式为：`prompt <prompt> [if <expr>]` 其中的if可选，用来表示该提示的依赖关系
+
+   3. 默认值的格式为: `default <expr> [if <expr>]` 
+
+   4. 依赖关系的格式为：`depends on <expr>` 或者 `requires <expr>` 。如果定义了多重依赖关系，它们之间用&&间隔。
+
+   5. 选择关系的格式为：`select <symbol> [if <expr>]` 也称为反向依赖关系，A如果选择了B，则在A被选中的情况下，B自动被选中。
+
+   6. 数据范围定义的格式为：`range <symbol> <symbol> [if <expr>]` 表示范围在两个symbol之间。
+
+   7. 帮助信息的格式为:
+
+      ``` Kconfig
+      help(或---help---)
+      	开始
+      	...
+      	结束
+      ```
+
+2. Kconfig中的菜单结构
+
+   配置选项在菜单树结构中的位置可以由两种方法决定。第一种方式：
+
+   ``` makefile
+   menu "Network device support"
+   	depends on NET
+   config NETDEVICES
+   	...
+   endmenu
+   ```
+
+   通过menu和endmenu来显式的声明菜单，中间所有包含的选项都成为Network device support的子菜单。所有子菜单（config）选项都会继承父菜单(menu)的依赖关系。
+
+   第二种方式：直接通过分析依赖关系生成菜单结构，如果菜单项在一定程度上依赖前面的选项，它就能成为该选项的子菜单。
+
+   此外Kconfig中还支持"choices ... endchoice", "comment", "if ... endif"这样的语法结构。其中：
+
+   ```makefile
+   choice
+   <choice options>
+   <choice block>
+   endchoice
+   ```
+
+   定义了一个选择群，其接受的选项可以是前面描述的任何属性。
+
 ### 2. 内核编译
 
+Linux内核的编译由Linux源码下各级的makefile脚本文件控制。对于内核编译Makefile中的编译目标声明，一般采用如下形式：
 
+```makefile
+obj-y += foo.o
+obj-$(CONFIG_ISDN) += isdn.o
+```
 
+第一种是直接将foo纳入内核编译，第二种则是根据内核配置文件的选项决定是否编译以及如何编译isdn模块。在内核makefile文件中，obj-y表示直接编译入内核，obj-m表示编译为内核模块，obj-n表示不编译。
 
+除了obj-x形式的目标外，还有lib-y表示编译为library库，hostporgs-y表示编译为主机程序。
+
+如果一个模块由多个文件组成，这时候就需要采用模块名加-y或-objs后缀的形式来定义模块的组成文件，如：
+
+```makefile
+# Makefile for the linux ext2-filesystem routines
+
+obj-$(CONFIG_EXT2_FS) += ext2.o
+ext2-y := balloc.o dir.o file.o fsync.o ialloc.o inode.o \
+	ioctl.o namei.o super.o symlink.o
+ext2-$(CONFIG_EXT2_FS_XATTR) += xattr.o xattr_user.o xattr_trusted.o
+ext2-$(CONFIG_EXT2_FS_POSIX_ACL) += acl.o
+```
+
+上面的脚本表示模块的编译目标是ext2，该模块的编译依赖balloc.o， dir.o，dir.o等多个目标文件，最终连接生成ext2.o直至ext2.ko文件。并且是否包含xattr.o, acl.o等取决于内核的配置文件。
+
+当编译需要用到子目录的文件时，需要将目录也加到编译选项的迭代中，如：
+
+`obj-$(CONFiG_EXT2_FS) += ext2/` 当CONFIG_EXT2_FS为Y或者M时，内核编译系统会把ext2目录列入向下迭代的目标中。
 
 ### 3. 内核加载
 
