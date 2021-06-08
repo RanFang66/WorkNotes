@@ -441,5 +441,167 @@ $(addprefix <prefix>, <names>)
 ### 链接函数
 
 ```makefile
-$(addprefix <prefix>, <names>)
+$(join <list1>, <list2>)
 ```
+
+将list2中的单词一一对应的拼接到list1中的单词后，如果list1的单词比list2多，那么list1后面多出来的单词保持不变。如果list1的单词比list2少，那么list2后面多出来的单词保持不变。返回拼接之后的单词序列
+
+### 获取匹配模式文件名函数
+
+```makefile
+$(wildcard PATTERN)
+```
+
+列出当前目录下所有符合模式的PATTERN格式的文件名，返回由空格分隔的当前目录下所有符合PATTERN模式的文件名。
+
+### Exam
+
+```makefile
+OBJ = $(dir src/main.c src/module1.c inc/module1.h bsp.h)
+all:
+	@echo $(OBJ)	#显示 src/ src/ inc/ ./
+	
+OBJ = $(notdir src/main.c src/module1.c inc/module1.h bsp.h)
+all:
+	@echo $(OBJ)	#显示main.c module1.c module1.h bsp.h
+	
+OBJ = $(suffix src/main.c src/module1.c inc/module1.h bsp.h)
+all:
+	@echo $(OBJ)	#显示.c .c .h .h
+	
+OBJ = $(basename src/main.c src/module1.c inc/module1.h bsp.h)
+all:
+	@echo $(OBJ)	#显示 src/main src/module1 inc/module1 bsp
+
+OBJ = $(addsuffix .c, src/main src/module1)
+all:
+	@echo $(OBJ)	#显示 src/main.c src/module1.c
+	
+OBJ = $(addprefix src/, main.c module1.c)
+all:
+	@echo $(OBJ)	#显示 src/main.c src/module1.c
+	
+OBJ = $(join main module1 module2, .c .h)
+all:
+	@echo $(OBJ)	#显示 main.c module1.h module2
+	
+OBJ = $(wildcard *.c *.h)
+main : $(OBJ)
+	gcc -o $@ $^
+	
+```
+
+## Makefile其他常用函数
+
+### 遍历函数
+
+``` makefile
+$(foreach <var>, <list>, <text>)
+```
+
+把参数list中的单词逐一取出放到参数var所指定的变量中，然后再执行text所包含的表达式，最终遍历完成后返回由空格分隔的遍历执行结果。
+
+**Notice** foreach函数中的var是一个临时变量，作用域只在该函数中，执行结束后就不再起作用。
+
+```makefile
+name = main module1 module2
+files = $(foreach n, $(name), $(n).o)
+all:
+	@echo $(files)  #显示 main.o module1.o module2.o
+```
+
+### 条件执行函数
+
+```makefile
+$(if <condition>, <then-part>)
+$(if <condition>, <then-part>, <else-part>)
+```
+
+当condition为真，则执行then-part部分，否则执行else-part部分，返回执行结果，如果condition为假且else-part为空，则返回空字符串。condition为真的条件为condition为非空字符串。
+
+```makefile
+OBJ = foo.c
+OBJ = $(if $(OBJ), $(OBJ), main.c)
+all:
+	@echo $(OBJ)		#显示 foo.c
+```
+
+### 参数替换函数
+
+```makefile
+$(call <expression>, <parm1>, <parm2>, <parm3>, ...)
+```
+
+expression是一个包含参数的表达式，但call被执行时，expression中的参数变量$(1)，\$(2)，\$(3)等会被后面的参数parm1， parm2, parm3依次取代。最终返回替换完之后expression的值。
+
+``` makefile
+files = $(2).c $(1).c
+obj = $(call files, main, module)
+all:
+	@echo $(obj)	#显示 module.c main.c
+```
+
+### 变量属性函数
+
+```makefile
+$(origin <variable>)
+```
+
+origin 函数不会操作变量的值，他只会返回这个变量的来源。这里variable是变量的名字，不应该是引用，最好不要在variable中使用$字符。下面是origin函数的返回值：
+
+| 返回值       | 说明                                                 |
+| ------------ | ---------------------------------------------------- |
+| undefined    | variable从没有定义过                                 |
+| default      | variable是默认定义的变量，如CC                       |
+| environment  | variable是一个环境变量，并且makefile执行时没有-e选项 |
+| file         | variable是在Makefile中定义的变量                     |
+| command line | variable这个变量是被命令执行的                       |
+| override     | variable是被override指示符重新定义的                 |
+| automatic    | variable是一个命令行中的自动化变量                   |
+
+## Makefile的文件包含与嵌套执行
+
+ Makefile中可以通过include关键字来包含其他文件，当make命令遇到include关键字时，会暂停读取当前的Makefile，而是取读取include包含的文件，读取结束后再继续运行Makefile文件。具体用法如下：
+
+```makefile
+include <filenames>
+-include <filenames>
+```
+
+上述两种使用方式的区别在于：
+
+- 使用 `include <filenames>` ，make 在处理程序的时候，文件列表中的任意一个文件不存在的时候或者是没有规则去创建这个文件的时候，make 程序将会提示错误并保存退出。
+- 使用 `-include <filenames>`，当包含的文件不存在或者是没有规则去创建它的时候，make 将会继续执行程序，只有真正由于不能完成终极目标重建的时候我们的程序才会提示错误保存退出。
+
+**Notice** :使用include包含进来的 Makefile 文件中，如果存在函数或者是变量的引用，它们会在包含的 Makefile 中展开。
+
+### Makefile嵌套执行的两种方式
+
+```makefile
+subsystem:
+	cd subdir && $(MAKE)
+```
+
+上述脚本使当前的make命令切换目录到指定的目录subdir，该目录下也有一个Makefile文件用于描述subdir下文件的编译规则，然后会再该目录下执行make命令，执行完之后再返回外层的make执行中。这样实现了make的嵌套执行，最外层的Makefile一般称为总控Makefile。
+
+另一种写法是：
+
+```makefile
+subsystem:
+	$(MAKE) -C subdir
+```
+
+make的嵌套执行过程中，有一个系统变量“CURDIR”，它表示make的工作目录。当使用-C选项时，命令就会进入指定的目录中，此变量也会被重新赋值。
+
+### Make嵌套执行时的参数传递
+
+使用make嵌套执行时，如果需要传递变量，可以如下使用：
+
+```makefile
+export <variable>
+```
+
+如果需要传递所有变量，直接使用export不添加变量名即可。
+
+有两个变量SHELL和MAKEFLAGS在不管是否使用export关键字的情况下都会传递给被嵌套的Makefile。
+
