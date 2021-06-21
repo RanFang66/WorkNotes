@@ -14,7 +14,9 @@
 
 对于混合气体的流速控制就是对比例阀的控制。具体的控制算法见:
 
-[NNP比例阀建模和控制]: https://github.com/RanFang66/WorkNotes/blob/main/NNP%E9%A1%B9%E7%9B%AE%E7%94%A8%E6%AF%94%E4%BE%8B%E9%98%80.md
+[NNP比例阀建模和控制算法设计](https://github.com/RanFang66/WorkNotes/blob/main/NNP%E9%A1%B9%E7%9B%AE%E7%94%A8%E6%AF%94%E4%BE%8B%E9%98%80.md)
+
+![image-20210621091626520](NNP机型控制器设计.assets/image-20210621091626520.png)
 
 ## 氧浓度控制
 
@@ -30,7 +32,7 @@
 
 氧浓度控制是流量控制的外环，最终的氧浓度控制是需要通过流量控制来实现的。
 
-
+![image-20210621091657693](NNP机型控制器设计.assets/image-20210621091657693.png)
 
 ## 压力控制
 
@@ -46,7 +48,9 @@
 
 对于气道压力的控制其实就是对IP阀的控制，具体的控制算法见：
 
-[NNP IP阀建模和控制]: https://github.com/RanFang66/WorkNotes/blob/main/NNP%20%E9%A1%B9%E7%9B%AE%E7%94%A8IP%E9%98%80%E6%B5%8B%E8%AF%95%E4%B8%8E%E6%8E%A7%E5%88%B6%E5%99%A8%E8%AE%BE%E8%
+[NNP IP阀建模和控制](https://github.com/RanFang66/WorkNotes/blob/main/NNP%20%E9%A1%B9%E7%9B%AE%E7%94%A8IP%E9%98%80%E6%B5%8B%E8%AF%95%E4%B8%8E%E6%8E%A7%E5%88%B6%E5%99%A8%E8%AE%BE%E8%)
+
+![image-20210621091718372](NNP机型控制器设计.assets/image-20210621091718372.png)
 
 ## 潮气量控制
 
@@ -56,4 +60,11 @@
 
 反馈机构： 近端流量传感器（对采样流速做积分计算）
 
-控制方法：
+控制方法：通过理论推导可以得到潮气量与峰值压力PIP以及PEEP之间的关系，根据该关系将对潮气量的控制转化为对气道压力的控制。但这种控制是开环的，会有静态误差。因此在前面的基础上还需要加上闭环的控制，直接采用PI反馈调节即可。具体控制算法推导可以见：
+
+[潮气量控制算法](https://github.com/RanFang66/WorkNotes/blob/main/%E6%BD%AE%E6%B0%94%E9%87%8F%E6%8E%A7%E5%88%B6%E7%AE%97%E6%B3%95.md)
+
+控制器输出： 吸气相时的最大气道压力给定PIP。
+
+![image-20210621093420327](NNP机型控制器设计.assets/image-20210621093420327.png)
+
